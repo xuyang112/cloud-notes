@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f75940" />
+    <title>云笔记</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <a class="brand" href="#" aria-label="云笔记首页"><span>No</span><span>te</span></a>
+        <nav aria-label="笔记分类">
+          <ul class="category-list" id="categoryList"></ul>
+        </nav>
+        <div class="sidebar-footer">
+          <p>云笔记<br /><span>把想法留下来</span></p>
+          <button class="text-button" id="manageCategories" type="button">管理分类</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <button class="icon-button menu-button" id="menuButton" type="button" aria-label="打开分类菜单"><span></span><span></span><span></span></button>
+          <div class="workspace-title">
+            <p class="eyebrow" id="categoryLabel">Java</p>
+            <h1 id="pageTitle">Java</h1>
+          </div>
+          <div class="topbar-actions">
+            <label class="search-field" aria-label="搜索笔记">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></svg>
+              <input id="searchInput" type="search" placeholder="搜索笔记" />
+            </label>
+            <button class="add-button" id="newNote" type="button"><span>+</span> 新建笔记</button>
+          </div>
+        </header>
+
+        <section class="notes-panel" aria-live="polite">
+          <div class="notes-toolbar">
+            <p id="noteCount">0 篇笔记</p>
+            <select id="sortSelect" aria-label="笔记排序">
+              <option value="updated">最近更新</option>
+              <option value="created">最近创建</option>
+              <option value="title">标题排序</option>
+            </select>
+          </div>
+          <div class="notes-grid" id="notesGrid"></div>
+          <div class="empty-state" id="emptyState" hidden>
+            <div class="empty-mark">+</div>
+            <h2>这里还没有笔记</h2>
+            <p>记录一个想法，或整理一段刚学到的内容。</p>
+            <button class="add-button" id="emptyNewNote" type="button"><span>+</span> 新建笔记</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="note-dialog" id="noteDialog">
+      <form class="note-form" id="noteForm" method="dialog">
+        <div class="dialog-heading">
+          <p class="eyebrow" id="formEyebrow">新建笔记</p>
+          <button class="close-button" id="closeDialog" type="button" aria-label="关闭">&times;</button>
+        </div>
+        <label>标题<input id="noteTitle" name="title" maxlength="80" required placeholder="给这篇笔记起个标题" /></label>
+        <label>分类<select id="noteCategory" name="category"></select></label>
+        <label>内容<textarea id="noteContent" name="content" rows="12" maxlength="10000" required placeholder="在这里开始写..." ></textarea></label>
+        <div class="dialog-actions">
+          <button class="cancel-button" id="cancelDialog" type="button">取消</button>
+          <button class="add-button" type="submit">保存笔记</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="category-dialog" id="categoryDialog">
+      <form class="category-form" id="categoryForm" method="dialog">
+        <div class="dialog-heading">
+          <p class="eyebrow">管理分类</p>
+          <button class="close-button" id="closeCategoryDialog" type="button" aria-label="关闭">&times;</button>
+        </div>
+        <div class="category-editor" id="categoryEditor"></div>
+        <div class="new-category-row">
+          <input id="newCategoryName" maxlength="24" placeholder="添加新分类" />
+          <button class="add-button" id="addCategory" type="button">添加</button>
+        </div>
+        <div class="dialog-actions"><button class="add-button" id="doneCategories" type="submit">完成</button></div>
+      </form>
+    </dialog>
+
+    <template id="noteTemplate">
+      <article class="note-card">
+        <div class="note-card-head">
+          <span class="note-category"></span>
+          <div class="note-menu-wrap">
+            <button class="more-button" type="button" aria-label="笔记操作">&#183;&#183;&#183;</button>
+            <div class="note-menu" hidden>
+              <button class="edit-note" type="button">编辑</button>
+              <button class="delete-note" type="button">删除</button>
+            </div>
+          </div>
+        </div>
+        <h2></h2>
+        <p class="note-excerpt"></p>
+        <footer><time></time></footer>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+docs/.vitepress/.temp/
+.wrangler/
+.env
+.env.*
+!.env.example
+.local/
+test-results/
+playwright-report/
+*.log

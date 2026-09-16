@@ -1,7 +1,7 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { JSONContent } from '@tiptap/core'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, X } from 'lucide-react'
 import { hljs, safeUrl } from '../lib/content'
 import { normalizeTextColor } from '../lib/text-color'
 
@@ -23,6 +23,37 @@ function CodeBlock({ node }: { node: JSONContent }) {
     </div>
     {error && <span role="status">{error}</span>}
   </figure>
+}
+
+function ImagePreview({ src, alt, title }: { src: string; alt: string; title?: string }) {
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [open])
+
+  return <>
+    <button type="button" className="image-preview-trigger" onClick={() => setOpen(true)} aria-label={alt ? `查看图片：${alt}` : '查看大图'}>
+      <img src={src} alt={alt} loading="lazy" />
+    </button>
+    {open && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={alt ? `图片预览：${alt}` : '图片预览'} onClick={() => setOpen(false)}>
+      <button type="button" className="image-lightbox-close icon-button" title="关闭图片预览" aria-label="关闭图片预览" onClick={() => setOpen(false)}><X size={20} /></button>
+      <div className="image-lightbox-content" onClick={event => event.stopPropagation()}>
+        <img src={src} alt={alt} />
+        {title && <p>{title}</p>}
+      </div>
+    </div>}
+  </>
 }
 
 function ContentNode({ node, index }: { node: JSONContent; index: number }) {
@@ -59,7 +90,9 @@ function ContentNode({ node, index }: { node: JSONContent; index: number }) {
     case 'horizontalRule': return <hr />
     case 'image': {
       const src = safeUrl(String(node.attrs?.src || ''), true)
-      return src ? <figure className="article-image"><img src={src} alt={String(node.attrs?.alt || '')} loading="lazy" />{node.attrs?.title && <figcaption>{String(node.attrs.title)}</figcaption>}</figure> : null
+      const alt = String(node.attrs?.alt || '')
+      const title = node.attrs?.title ? String(node.attrs.title) : undefined
+      return src ? <figure className="article-image"><ImagePreview src={src} alt={alt} title={title} />{title && <figcaption>{title}</figcaption>}</figure> : null
     }
     case 'table': return <div className="table-scroll"><table><tbody>{children}</tbody></table></div>
     case 'tableRow': return <tr>{children}</tr>

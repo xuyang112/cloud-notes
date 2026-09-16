@@ -188,8 +188,16 @@ svg { flex-shrink: 0; }
 .prose-content td, .prose-content th { border: 1px solid #e5e9ee; padding: 11px 14px; min-width: 80px; }
 .prose-content td p, .prose-content th p { margin: 0; }
 .article-image { margin: 24px 0; }
+.image-preview-trigger { display: block; width: 100%; padding: 0; text-align: left; cursor: zoom-in; }
 .article-image img { display: block; max-width: 100%; height: auto; border-radius: 4px; }
+.image-preview-trigger:hover img { box-shadow: 0 0 0 2px #c6d8f6; }
 .article-image figcaption { color: #969fab; text-align: center; font-size: 10px; margin-top: 9px; }
+.image-lightbox { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 56px 28px 28px; background: #111827d9; cursor: zoom-out; }
+.image-lightbox-close { position: absolute; top: 16px; right: 18px; width: 40px; height: 40px; color: #fff; background: #ffffff1f; }
+.image-lightbox-close:hover { color: #fff; background: #ffffff38; }
+.image-lightbox-content { max-width: min(1200px, 96vw); max-height: calc(100vh - 84px); display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: default; }
+.image-lightbox-content img { display: block; max-width: 100%; max-height: calc(100vh - 120px); width: auto; height: auto; object-fit: contain; border-radius: 3px; box-shadow: 0 10px 38px #00000055; }
+.image-lightbox-content p { max-width: 100%; color: #fff; font-size: 12px; line-height: 1.6; text-align: center; }
 .article-pagination { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid var(--note-border); padding-top: 23px; margin-top: 34px; }
 .article-pagination a { min-width: 0; }
 .article-pagination a > span { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #929aa6; margin-bottom: 7px; }

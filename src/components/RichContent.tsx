@@ -5,21 +5,52 @@ import { Check, Copy, Download, FileText, X } from 'lucide-react'
 import { hljs, safeAttachmentUrl, safeUrl } from '../lib/content'
 import { normalizeTextColor } from '../lib/text-color'
 
+type HighlightToken = { content: string; color?: string; fontStyle?: number }
+
+function tokenClass(color?: string) {
+  switch (color?.toLowerCase()) {
+    case '#ff7b72': return 'code-token-keyword'
+    case '#d2a8ff': return 'code-token-function'
+    case '#a5d6ff':
+    case '#7ee787': return 'code-token-string'
+    case '#8b949e':
+    case '#6e7681': return 'code-token-comment'
+    case '#79c0ff':
+    case '#ffa657': return 'code-token-number'
+    default: return 'code-token-default'
+  }
+}
+
 function CodeBlock({ node }: { node: JSONContent }) {
   const text = (node.content || []).map(item => item.text || '').join('')
   const language = String(node.attrs?.language || 'text')
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
+  const [shikiLines, setShikiLines] = useState<HighlightToken[][] | null>(null)
   const html = hljs.getLanguage(language) ? hljs.highlight(text, { language }).value : text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  useEffect(() => {
+    let active = true
+    setShikiLines(null)
+    void import('../lib/shiki').then(({ highlightCode }) => highlightCode(text, language))
+      .then(tokens => { if (active) setShikiLines(tokens) })
+      .catch(() => { /* The synchronous highlighter remains as a no-blank fallback. */ })
+    return () => { active = false }
+  }, [language, text])
+
   async function copy() {
     try { await navigator.clipboard.writeText(text); setCopied(true); window.setTimeout(() => setCopied(false), 1600) }
     catch { setError('复制失败，请选中代码后复制。') }
   }
+  const lineCount = shikiLines?.length || text.split('\n').length
   return <figure className="code-block">
     <figcaption><span>{language.toUpperCase()}</span><button type="button" className="icon-button" title={copied ? '已复制' : '复制代码'} aria-label={copied ? '已复制' : '复制代码'} onClick={copy}>{copied ? <Check size={14} /> : <Copy size={14} />}</button></figcaption>
     <div className="code-scroll">
-      <div className="line-numbers" aria-hidden="true">{text.split('\n').map((_, index) => <span key={index}>{index + 1}</span>)}</div>
-      <pre><code className={`language-${language}`} dangerouslySetInnerHTML={{ __html: html }} /></pre>
+      <div className="line-numbers" aria-hidden="true">{Array.from({ length: lineCount }, (_, index) => <span key={index}>{index + 1}</span>)}</div>
+      <pre><code className={`language-${language}`}>{shikiLines
+        ? shikiLines.map((line, index) => <span key={index} className="code-line">{line.map((token, tokenIndex) => <span key={tokenIndex} className={`${tokenClass(token.color)} ${token.fontStyle ? 'is-italic' : ''}`}>{token.content}</span>)}</span>)
+        : <span dangerouslySetInnerHTML={{ __html: html }} />}
+      </code></pre>
     </div>
     {error && <span role="status">{error}</span>}
   </figure>

@@ -41,7 +41,7 @@ export default function Article() {
         {notes[index + 1] ? <Link to={`/notes/${encodeURIComponent(notes[index + 1].slug)}`}><span>下一篇<ArrowRight size={14} /></span><strong>{notes[index + 1].title}</strong></Link> : <div />}
       </nav>
     </article>
-    {!collapsed && <aside className="toc" aria-label="页面目录"><div className="toc-title"><List size={15} />本页目录</div><nav>{toc.map(heading => <a key={heading.id} className={active === heading.id ? 'active' : ''} style={{ paddingLeft: 14 + (heading.level - 2) * 12 }} href={`#${heading.id}`} onClick={() => setActive(heading.id)}>{heading.text.replace(/^\d+ · /, '')}</a>)}</nav><a className="back-to-top" href="#root">返回顶部 ↑</a></aside>}
+    {!collapsed && <aside className="toc" aria-label="页面目录"><div className="toc-title"><List size={15} />本页目录</div><nav>{toc.map(heading => <a key={heading.id} className={`${active === heading.id ? 'active ' : ''}toc-level-${heading.level}`} href={`#${heading.id}`} onClick={() => setActive(heading.id)}>{heading.text.replace(/^\d+ · /, '')}</a>)}</nav><a className="back-to-top" href="#root">返回顶部 ↑</a></aside>}
     {!collapsed && toc.length > 0 && <details className="mobile-toc"><summary>本页目录</summary>{toc.map(heading => <a key={heading.id} href={`#${heading.id}`}>{heading.text}</a>)}</details>}
   </main>
 }

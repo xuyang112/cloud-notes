@@ -29,6 +29,8 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
+    "shiki": "^4.4.3",
+    "three": "^0.160.0",
     "turndown": "^7.2.4",
     "turndown-plugin-gfm": "^1.0.2"
   },

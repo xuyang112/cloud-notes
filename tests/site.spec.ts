@@ -1,9 +1,34 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import JSZip from 'jszip'
 import { readFile } from 'node:fs/promises'
 
+async function openApp(page: Page, url: string) {
+  await page.goto(url)
+  await expect(page.locator('.workspace, .splash-root, .splash-fallback').first()).toBeVisible({ timeout: 10000 })
+  const splash = page.locator('.splash-root, .splash-fallback')
+  if (await splash.count()) {
+    const skip = page.getByRole('button', { name: '跳过动画' })
+    await expect(skip).toBeVisible({ timeout: 5000 })
+    await skip.click()
+    await expect(page.locator('.workspace')).toBeVisible({ timeout: 5000 })
+  }
+}
+
+async function reloadApp(page: Page) {
+  await page.reload()
+  await expect(page.locator('.workspace, .splash-root, .splash-fallback').first()).toBeVisible({ timeout: 10000 })
+  const splash = page.locator('.splash-root, .splash-fallback')
+  if (await splash.count()) {
+    const skip = page.getByRole('button', { name: '跳过动画' })
+    await expect(skip).toBeVisible({ timeout: 5000 })
+    await skip.click()
+    await expect(page.locator('.workspace')).toBeVisible({ timeout: 5000 })
+  }
+}
+
 test.beforeEach(async ({ page }) => {
-  await page.goto('/')
+  await page.addInitScript(() => localStorage.setItem('splash_seen', '1'))
+  await openApp(page, '/')
   // Refuse to run mutating preview tests against a configured cloud workspace.
   await expect(page.locator('.preview-badge')).toHaveCount(1)
 })
@@ -11,7 +36,7 @@ test.beforeEach(async ({ page }) => {
 test('article renders real code, table, image, TOC and persisted collapse', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
-  await page.goto('/notes/java-getting-started')
+  await openApp(page, '/notes/java-getting-started')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('JavaSE - Java入门')
   await expect(page.locator('.line-numbers span')).toHaveCount(9)
   await expect(page.locator('.hljs-keyword').first()).toBeVisible()
@@ -28,7 +53,7 @@ test('article renders real code, table, image, TOC and persisted collapse', asyn
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expect.poll(() => page.locator('.tutorial-body').evaluate(element => element.getBoundingClientRect().height)).toBe(0)
   await expect(page.locator('.toc')).toHaveCount(0)
-  await page.reload()
+  await reloadApp(page)
   await expect(page.getByRole('button', { name: '显示教程' })).toBeVisible()
   await page.locator('.article-pagination a').last().click()
   await expect(page.getByRole('button', { name: '显示教程' })).toBeVisible()
@@ -38,7 +63,7 @@ test('article renders real code, table, image, TOC and persisted collapse', asyn
 })
 
 test('home filters categories and searches title and body', async ({ page }) => {
-  await page.goto('/')
+  await openApp(page, '/')
   await expect(page.locator('.note-row')).toHaveCount(5)
   await page.screenshot({ path: '.local/home-desktop.png', fullPage: true })
   await page.getByRole('tab', { name: '数据库', exact: true }).click()
@@ -54,14 +79,14 @@ test('home filters categories and searches title and body', async ({ page }) => 
 
 test('mobile drawer, narrow layout and collapse work', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/notes/java-getting-started')
+  await openApp(page, '/notes/java-getting-started')
   await expect(page.getByRole('button', { name: '打开导航' })).toBeVisible()
   await page.getByRole('button', { name: '打开导航' }).click()
   await expect(page.locator('.sidebar')).toHaveClass(/is-open/)
   await page.getByRole('link', { name: '查询与筛选', exact: true }).click()
   await expect(page.locator('.sidebar')).not.toHaveClass(/is-open/)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('SQL - 查询与筛选')
-  await page.goto('/notes/java-getting-started')
+  await openApp(page, '/notes/java-getting-started')
   await page.screenshot({ path: '.local/article-mobile.png', fullPage: true })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
   await page.getByRole('button', { name: '隐藏教程' }).click()
@@ -76,27 +101,27 @@ test('mobile drawer, narrow layout and collapse work', async ({ page }) => {
 test('Tiptap edits autosave and survive reload; publishing is functional', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
-  await page.goto('/admin')
+  await openApp(page, '/admin')
   await page.getByRole('button', { name: '新建笔记' }).click()
   const title = page.getByRole('textbox', { name: '文章标题' })
   await title.fill('自动保存验证笔记')
   await page.getByRole('button', { name: '生成', exact: true }).click()
   await page.locator('.tiptap').fill('编辑器里的测试正文')
   await expect(page.locator('.save-state')).toHaveText('已保存', { timeout: 15000 })
-  await page.reload()
+  await reloadApp(page)
   await expect(title).toHaveValue('自动保存验证笔记')
   await expect(page.locator('.tiptap')).toContainText('编辑器里的测试正文')
   await page.getByRole('checkbox', { name: '发布文章' }).check()
   await expect(page.locator('.save-state')).toHaveText('已保存', { timeout: 15000 })
   await page.screenshot({ path: '.local/editor-desktop.png', fullPage: true })
-  await page.goto('/notes/' + encodeURIComponent('自动保存验证笔记'))
+  await openApp(page, '/notes/' + encodeURIComponent('自动保存验证笔记'))
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('自动保存验证笔记')
   await expect(page.locator('.prose-content')).toContainText('编辑器里的测试正文')
   expect(errors).toEqual([])
 })
 
 test('zip backup contains five markdown notes, original data and real image', async ({ page }) => {
-  await page.goto('/admin')
+  await openApp(page, '/admin')
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: '导出备份' }).click()
   const download = await downloadPromise
@@ -118,7 +143,7 @@ test('zip backup contains five markdown notes, original data and real image', as
 })
 
 test('category CRUD and occupied category guard', async ({ page }) => {
-  await page.goto('/admin/categories')
+  await openApp(page, '/admin/categories')
   await page.getByLabel('分类名称').fill('网络基础')
   await page.getByLabel('Slug', { exact: true }).fill('network')
   await page.getByRole('button', { name: '添加分类' }).click()
@@ -135,7 +160,7 @@ test('category CRUD and occupied category guard', async ({ page }) => {
 })
 
 test('editor code language, table tools, image sizing and attachments are real', async ({ page }) => {
-  await page.goto('/admin/notes/20000000-0000-4000-8000-000000000001')
+  await openApp(page, '/admin/notes/20000000-0000-4000-8000-000000000001')
   await page.locator('.tiptap pre').click()
   await expect(page.getByLabel('代码语言')).toHaveValue('java')
   await page.getByLabel('代码语言').selectOption('cpp')
@@ -169,7 +194,7 @@ test('editor code language, table tools, image sizing and attachments are real',
   await page.setViewportSize({ width: 390, height: 844 })
   await page.screenshot({ path: '.local/editor-mobile.png', fullPage: true })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
-  await page.reload()
+  await reloadApp(page)
   await expect(pastedImage).toHaveCount(1)
   await expect(pastedImage).toHaveAttribute('width', '55%')
   await expect(page.locator('.attachment-node')).toContainText('reference.txt')
@@ -183,13 +208,13 @@ test('editor code language, table tools, image sizing and attachments are real',
   expect(await zip.file(attachmentName!)!.async('string')).toBe('attachment verification')
   const markdownName = Object.keys(zip.files).find(name => name.endsWith('.md'))!
   expect(await zip.file(markdownName)!.async('string')).toContain('../attachments/')
-  await page.goto('/notes/java-getting-started')
+  await openApp(page, '/notes/java-getting-started')
   await expect(page.locator('.image-preview-trigger').filter({ has: page.locator('img[alt="pasted-diagram.png"]') })).toHaveAttribute('style', 'width: 55%;')
   await expect(page.locator('.article-attachment')).toContainText('reference.txt')
 })
 
 test('invalid slug does not claim saved and current draft can still be exported', async ({ page }) => {
-  await page.goto('/admin/notes/20000000-0000-4000-8000-000000000001')
+  await openApp(page, '/admin/notes/20000000-0000-4000-8000-000000000001')
   await page.getByRole('textbox', { name: '文章 slug' }).fill('invalid/slug')
   await page.getByRole('button', { name: '立即保存' }).click()
   await expect(page.locator('.save-state')).toHaveText('未保存')
@@ -209,7 +234,7 @@ test('invalid slug does not claim saved and current draft can still be exported'
 })
 
 test('draft visibility, unpublish, delete and draft backup', async ({ page }) => {
-  await page.goto('/admin')
+  await openApp(page, '/admin')
   await page.getByRole('button', { name: '新建笔记' }).click()
   await page.getByRole('textbox', { name: '文章标题' }).fill('只存在于草稿中的标题')
   await page.getByRole('button', { name: '立即保存' }).click()
@@ -220,21 +245,21 @@ test('draft visibility, unpublish, delete and draft backup', async ({ page }) =>
   const download = await downloadPromise
   const zip = await JSZip.loadAsync(await readFile((await download.path())!))
   expect(Object.keys(zip.files).filter(file => file.endsWith('.md'))).toHaveLength(6)
-  await page.goto('/?q=' + encodeURIComponent('只存在于草稿中的标题'))
+  await openApp(page, '/?q=' + encodeURIComponent('只存在于草稿中的标题'))
   await expect(page.locator('.note-row')).toHaveCount(0)
-  await page.goto('/admin')
+  await openApp(page, '/admin')
   await page.getByRole('button', { name: '下架 JavaSE - Java入门', exact: true }).click()
   await expect(page.getByRole('button', { name: '发布 JavaSE - Java入门', exact: true })).toBeVisible()
-  await page.goto('/notes/java-getting-started')
+  await openApp(page, '/notes/java-getting-started')
   await expect(page.getByRole('heading', { level: 1 })).toContainText('尚未发布')
-  await page.goto('/admin')
+  await openApp(page, '/admin')
   page.on('dialog', dialog => dialog.accept())
   await page.getByRole('button', { name: '删除 只存在于草稿中的标题', exact: true }).click()
   await expect(page.locator('.management-summary').filter({ hasText: '只存在于草稿中的标题' })).toHaveCount(0)
 })
 
 test('font color survives autosave, public rendering and export, and can be reset', async ({ page }) => {
-  await page.goto('/admin')
+  await openApp(page, '/admin')
   await page.getByRole('button', { name: '新建笔记' }).click()
   const editUrl = page.url()
   await page.getByRole('textbox', { name: '文章标题' }).fill('字体颜色验证')
@@ -251,12 +276,12 @@ test('font color survives autosave, public rendering and export, and can be rese
   await expect(body.locator('strong')).toHaveCSS('color', 'rgb(199, 57, 57)')
   await page.getByRole('checkbox', { name: '发布文章' }).check()
   await expect(page.locator('.save-state')).toHaveText('已保存')
-  await page.reload()
+  await reloadApp(page)
   await expect(body.locator('span[style]').first()).toHaveCSS('color', 'rgb(199, 57, 57)')
-  await page.goto('/notes/' + encodeURIComponent('字体颜色验证'))
+  await openApp(page, '/notes/' + encodeURIComponent('字体颜色验证'))
   await expect(page.locator('.prose-content span[style]').first()).toHaveCSS('color', 'rgb(199, 57, 57)')
   const downloadPromise = page.waitForEvent('download')
-  await page.goto(editUrl)
+  await openApp(page, editUrl)
   await page.getByRole('button', { name: '导出当前笔记' }).click()
   const file = await downloadPromise
   const zip = await JSZip.loadAsync(await readFile((await file.path())!))
@@ -271,13 +296,13 @@ test('font color survives autosave, public rendering and export, and can be rese
   await expect(body.locator('span[style*="color"]')).toHaveCount(0)
   await expect(body.locator('strong')).toHaveCount(1)
   await expect(page.locator('.save-state')).toHaveText('已保存')
-  await page.reload()
+  await reloadApp(page)
   await expect(body.locator('span[style*="color"]')).toHaveCount(0)
 })
 
 test('custom font colors work on mobile without overflowing or losing selection', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/admin/notes/20000000-0000-4000-8000-000000000001')
+  await openApp(page, '/admin/notes/20000000-0000-4000-8000-000000000001')
   const body = page.locator('.tiptap')
   await body.fill('手机颜色测试')
   await body.press('ControlOrMeta+a')
@@ -302,6 +327,6 @@ test('custom font colors work on mobile without overflowing or losing selection'
   await page.keyboard.press('Escape')
   await expect(panel).toHaveCount(0)
   await expect(page.locator('.save-state')).toHaveText('已保存')
-  await page.reload()
+  await reloadApp(page)
   await expect(body.locator('span[style]').first()).toHaveCSS('color', 'rgb(21, 122, 99)')
 })

@@ -31,7 +31,9 @@ function EditForm({ initial }: { initial: Note }) {
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [showSavedToast, setShowSavedToast] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const flush = useCallback(async (): Promise<boolean> => {
     if (timer.current) clearTimeout(timer.current)
     if (inFlight.current) return inFlight.current
@@ -50,6 +52,9 @@ function EditForm({ initial }: { initial: Note }) {
         } catch (err) { setError(err instanceof Error ? err.message : '保存失败。'); setStatus('error'); return false }
       }
       setStatus('saved'); setError('')
+      setShowSavedToast(true)
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+      toastTimer.current = setTimeout(() => setShowSavedToast(false), 2000)
       void reload()
       return true
     }
@@ -72,7 +77,7 @@ function EditForm({ initial }: { initial: Note }) {
     window.addEventListener('beforeunload', warn)
     return () => { window.removeEventListener('beforeunload', warn) }
   }, [uploading])
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
   const blocker = useBlocker(status !== 'saved' || uploading)
   useEffect(() => {
     if (blocker.state !== 'blocked') return
@@ -89,5 +94,6 @@ function EditForm({ initial }: { initial: Note }) {
     <div className="note-settings"><label>分类<select value={draft.category_id || ''} onChange={event => update({ category_id: event.target.value || null })}><option value="">未分类</option>{data.categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><label className="slug-field">Slug<div><input aria-label="文章 slug" value={draft.slug} maxLength={180} onChange={event => update({ slug: event.target.value })} /><button type="button" title="从标题生成 slug" onClick={() => update({ slug: makeSlug(draft.title) })}>生成</button></div></label><label className="publish-check"><input type="checkbox" checked={draft.published} onChange={event => update({ published: event.target.checked })} />发布文章</label></div>
     {error && <p className="field-error" role="alert">{error}</p>}
     <Editor content={initial.content} onChange={(content, content_html) => update({ content, content_html })} onUploadChange={setUploading} />
+    {showSavedToast && <div className="toast toast-success" role="status">已保存</div>}
   </main>
 }

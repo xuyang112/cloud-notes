@@ -51,7 +51,7 @@ export function Login() {
   }
   return <main className="login-page"><Link className="back-link" to="/"><ArrowLeft size={15} />返回笔记</Link><h1>登录工作区</h1><p className="muted">NOTE / 管理员</p>
     {!configured ? <><ModeNotice /><p>尚未连接 Supabase，本机预览无需账户。</p><Link to="/admin" className="primary-button">进入本机预览</Link></>
-      : <form onSubmit={submit} className="login-form"><label>邮箱<input type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} /></label><label>密码<input type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} /></label>{error && <p role="alert" className="field-error">{error}</p>}<button className="primary-button" disabled={busy}>{busy ? '正在登录…' : '登录'}</button></form>}
+      : <form onSubmit={submit} className="login-form"><label>邮箱<input className={error ? 'has-error' : ''} aria-invalid={Boolean(error)} type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} /></label><label>密码<input className={error ? 'has-error' : ''} aria-invalid={Boolean(error)} type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} /></label>{error && <p role="alert" className="field-error">{error}</p>}<button className="primary-button" disabled={busy}>{busy ? '正在登录…' : '登录'}</button></form>}
   </main>
 }
 

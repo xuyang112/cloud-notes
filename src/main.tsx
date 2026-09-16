@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom'
+import App from './App'
 import { NotebookProvider } from './store'
 import Shell from './components/Shell'
 import Article from './pages/Article'
@@ -29,4 +30,5 @@ const router = createBrowserRouter([{
 }])
 const root = import.meta.hot?.data.root || ReactDOM.createRoot(document.getElementById('root')!)
 if (import.meta.hot) import.meta.hot.data.root = root
-root.render(<React.StrictMode><RouterProvider router={router} /></React.StrictMode>)
+const NotesApp = () => <RouterProvider router={router} />
+root.render(<React.StrictMode><App NotesApp={NotesApp} /></React.StrictMode>)

@@ -8,19 +8,6 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('.preview-badge')).toHaveCount(1)
 })
 
-test('opening transition clears without blocking the notebook', async ({ page }) => {
-  await page.goto('/')
-  await expect(page.locator('.site-intro')).toBeVisible()
-  await expect(page.locator('.site-intro')).toHaveCount(0, { timeout: 2000 })
-  await page.reload()
-  await expect(page.locator('.site-intro')).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(page.locator('.site-intro')).toHaveCount(0)
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.reload()
-  await expect(page.locator('.site-intro')).toHaveCount(0)
-})
-
 test('article renders real code, table, image, TOC and persisted collapse', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))

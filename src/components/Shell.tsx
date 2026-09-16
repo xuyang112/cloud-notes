@@ -10,24 +10,11 @@ export default function Shell() {
   const { data, loading, error, reload } = useNotebook()
   const location = useLocation()
   const [open, setOpen] = useState(false)
-  const [showIntro, setShowIntro] = useState(() => typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const drawerRef = useRef<HTMLElement>(null)
   const menuRef = useRef<HTMLButtonElement>(null)
   const [closedGroups, setClosedGroups] = useState<string[]>([])
   const publicNotes = data.notes.filter(note => note.published)
   const categories = [...data.categories].sort((a, b) => a.sort_order - b.sort_order)
-  useEffect(() => {
-    if (!showIntro) return
-    const dismiss = () => setShowIntro(false)
-    const timer = window.setTimeout(dismiss, 960)
-    window.addEventListener('pointerdown', dismiss, { capture: true, once: true })
-    window.addEventListener('keydown', dismiss, { once: true })
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('pointerdown', dismiss, true)
-      window.removeEventListener('keydown', dismiss)
-    }
-  }, [showIntro])
   useEffect(() => { setOpen(false); window.scrollTo(0, 0) }, [location.pathname, location.search])
   useEffect(() => {
     if (!open) return
@@ -47,12 +34,7 @@ export default function Shell() {
     document.addEventListener('keydown', handleKey)
     return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', handleKey) }
   }, [open])
-  return <div className={`app-layout min-h-screen bg-white text-ink antialiased ${showIntro ? 'is-entering' : ''}`}>
-    {showIntro && <div className="site-intro" aria-hidden="true">
-      <div className="site-intro__brand"><span>{site.name}</span><i /></div>
-      <span className="site-intro__caption">技术笔记 · {site.copyrightYear}</span>
-      <div className="site-intro__rule"><span /></div>
-    </div>}
+  return <div className="app-layout min-h-screen bg-white text-ink antialiased">
     {open && <div className="drawer-backdrop" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? 'is-open' : ''}`} ref={drawerRef} aria-label="笔记分类">
       <div className="sidebar-brand"><Link to="/" className="brand">{site.name}<span className="brand-dot" /></Link><button className="icon-button drawer-close" aria-label="关闭导航" onClick={() => { setOpen(false); menuRef.current?.focus() }}><X size={20} /></button></div>

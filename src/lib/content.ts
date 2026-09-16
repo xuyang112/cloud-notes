@@ -27,6 +27,15 @@ export function safeUrl(value: string, image = false): string | undefined {
   } catch { /* Unsupported URLs are not rendered as active links. */ }
 }
 
+export function safeAttachmentUrl(value: string): string | undefined {
+  if (/^\/(?!\/)/.test(value)) return value
+  if (/^data:application\/octet-stream;base64,[a-z0-9+/=\s]*$/i.test(value)) return value
+  try {
+    const url = new URL(value)
+    if (['https:', 'http:'].includes(url.protocol)) return url.href
+  } catch { /* Unsupported URLs are not rendered as downloads. */ }
+}
+
 export function makeSlug(title: string) {
   return title.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || `note-${Date.now()}`
 }

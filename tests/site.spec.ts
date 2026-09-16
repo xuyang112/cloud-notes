@@ -134,7 +134,7 @@ test('category CRUD and occupied category guard', async ({ page }) => {
   await expect(page.locator('.management-summary').filter({ hasText: '计算机网络' })).toHaveCount(0)
 })
 
-test('editor code language, table tools and pasted images are real', async ({ page }) => {
+test('editor code language, table tools, image sizing and attachments are real', async ({ page }) => {
   await page.goto('/admin/notes/20000000-0000-4000-8000-000000000001')
   await page.locator('.tiptap pre').click()
   await expect(page.getByLabel('代码语言')).toHaveValue('java')
@@ -152,7 +152,17 @@ test('editor code language, table tools and pasted images are real', async ({ pa
     transfer.items.add(new File([bytes], 'pasted-diagram.png', { type: 'image/png' }))
     document.querySelector('.tiptap')!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }))
   }, png)
-  await expect(page.locator('.tiptap img[src^="data:image/png"]')).toHaveCount(1)
+  const pastedImage = page.locator('.tiptap img[src^="data:image/png"]')
+  await expect(pastedImage).toHaveCount(1)
+  await pastedImage.click()
+  await expect(page.getByLabel('图片宽度')).toBeVisible()
+  await page.getByLabel('图片宽度').fill('55')
+  await expect(pastedImage).toHaveAttribute('width', '55%')
+  const chooserPromise = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: '添加附件', exact: true }).click()
+  const chooser = await chooserPromise
+  await chooser.setFiles({ name: 'reference.txt', mimeType: 'text/plain', buffer: Buffer.from('attachment verification') })
+  await expect(page.locator('.attachment-node')).toContainText('reference.txt')
   await expect(page.locator('.save-state')).toHaveText('已保存', { timeout: 15000 })
   await page.evaluate(() => scrollTo(0, 0))
   await page.screenshot({ path: '.local/editor-rich-desktop.png', fullPage: true })
@@ -160,8 +170,22 @@ test('editor code language, table tools and pasted images are real', async ({ pa
   await page.screenshot({ path: '.local/editor-mobile.png', fullPage: true })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
   await page.reload()
-  await expect(page.locator('.tiptap img[src^="data:image/png"]')).toHaveCount(1)
+  await expect(pastedImage).toHaveCount(1)
+  await expect(pastedImage).toHaveAttribute('width', '55%')
+  await expect(page.locator('.attachment-node')).toContainText('reference.txt')
   await expect(page.locator('.tiptap tr')).toHaveCount(5)
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: '导出当前笔记' }).click()
+  const download = await downloadPromise
+  const zip = await JSZip.loadAsync(await readFile((await download.path())!))
+  const attachmentName = Object.keys(zip.files).find(name => name.startsWith('attachments/') && name.endsWith('reference.txt'))
+  expect(attachmentName).toBeTruthy()
+  expect(await zip.file(attachmentName!)!.async('string')).toBe('attachment verification')
+  const markdownName = Object.keys(zip.files).find(name => name.endsWith('.md'))!
+  expect(await zip.file(markdownName)!.async('string')).toContain('../attachments/')
+  await page.goto('/notes/java-getting-started')
+  await expect(page.locator('.image-preview-trigger').filter({ has: page.locator('img[alt="pasted-diagram.png"]') })).toHaveAttribute('style', 'width: 55%;')
+  await expect(page.locator('.article-attachment')).toContainText('reference.txt')
 })
 
 test('invalid slug does not claim saved and current draft can still be exported', async ({ page }) => {

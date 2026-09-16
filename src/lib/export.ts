@@ -5,7 +5,7 @@ import { generateHTML } from '@tiptap/core'
 import type { JSONContent } from '@tiptap/core'
 import type { Notebook } from '../types'
 import { editorExtensions } from './editor'
-import { safeUrl } from './content'
+import { safeAttachmentUrl, safeUrl } from './content'
 import { normalizeTextColor } from './text-color'
 
 const safeName = (value: string) => value.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-').replace(/[. ]+$/g, '').slice(0, 100) || 'note'
@@ -33,8 +33,9 @@ export async function exportNotebook(data: Notebook) {
     replacement: (_content, node) => `\n\n${(node as HTMLElement).outerHTML}\n\n`,
   })
   const images = new Map<string, string>()
+  const attachments = new Map<string, string>()
   const warnings: string[] = []
-  async function archiveImages(node: JSONContent): Promise<void> {
+  async function archiveAssets(node: JSONContent): Promise<void> {
     if (node.type === 'image' && node.attrs?.src) {
       const source = String(node.attrs.src)
       if (images.has(source)) { node.attrs.src = images.get(source); return }
@@ -52,11 +53,27 @@ export async function exportNotebook(data: Notebook) {
         node.attrs.src = `../${name}`
       } catch (error) { warnings.push(`图片未打包，Markdown 保留原地址：${source.slice(0, 180)}。${String(error)}`) }
     }
-    for (const child of node.content || []) await archiveImages(child)
+    if (node.type === 'attachment' && node.attrs?.src) {
+      const source = String(node.attrs.src)
+      if (attachments.has(source)) node.attrs.src = attachments.get(source)
+      else {
+        try {
+          const valid = safeAttachmentUrl(source)
+          if (!valid) throw new Error('不支持的附件地址')
+          const response = await fetch(valid, { signal: AbortSignal.timeout(20000) })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const name = `attachments/file-${attachments.size + 1}-${safeName(String(node.attrs.name || 'attachment'))}`
+          zip.file(name, await response.arrayBuffer())
+          attachments.set(source, `../${name}`)
+          node.attrs.src = `../${name}`
+        } catch (error) { warnings.push(`附件未打包，Markdown 保留原地址：${source.slice(0, 180)}。${String(error)}`) }
+      }
+    }
+    for (const child of node.content || []) await archiveAssets(child)
   }
   for (const note of data.notes) {
     const content = structuredClone(note.content)
-    await archiveImages(content)
+    await archiveAssets(content)
     const document = new DOMParser().parseFromString(generateHTML(content, editorExtensions()), 'text/html')
     // Tiptap's colgroup precedes tbody; GFM expects the header section first.
     document.querySelectorAll('colgroup').forEach(element => element.remove())
@@ -66,7 +83,7 @@ export async function exportNotebook(data: Notebook) {
     zip.file(`notes/${safeName(note.slug)}-${note.id}.md`, `${metadata}\n# ${note.title}\n\n${converter.turndown(html)}\n`)
   }
   zip.file('notebook.json', JSON.stringify(data, null, 2))
-  zip.file('README.txt', `NOTE 备份\n时间：${new Date().toISOString()}\n文章：${data.notes.length} 篇（含未发布）\n分类：${data.categories.length}\n\nnotes/：Markdown 文件\nassets/：已下载的图片\nnotebook.json：原始 Tiptap JSON 与完整字段\n\n${warnings.length ? warnings.join('\n') : '所有引用的图片均已打包。'}\n`)
+  zip.file('README.txt', `NOTE 备份\n时间：${new Date().toISOString()}\n文章：${data.notes.length} 篇（含未发布）\n分类：${data.categories.length}\n\nnotes/：Markdown 文件\nassets/：已下载的图片\nattachments/：已下载的附件\nnotebook.json：原始 Tiptap JSON 与完整字段\n\n${warnings.length ? warnings.join('\n') : '所有引用的图片和附件均已打包。'}\n`)
   const blob = await zip.generateAsync({ type: 'blob' })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')

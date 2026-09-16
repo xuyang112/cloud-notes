@@ -117,3 +117,39 @@ export async function uploadImage(file: File): Promise<string> {
   if (error) throw error
   return supabase.storage.from('note-images').getPublicUrl(path).data.publicUrl
 }
+
+export interface UploadedAttachment {
+  src: string
+  name: string
+  size: number
+  mime: string
+}
+
+export async function uploadAttachment(file: File): Promise<UploadedAttachment> {
+  if (!file.name.trim()) throw new Error('附件需要有效的文件名。')
+  if (file.size > 20 * 1024 * 1024) throw new Error('附件不能超过 20 MB。')
+  const mime = file.type || 'application/octet-stream'
+  if (!supabase) {
+    if (file.size > 2 * 1024 * 1024) throw new Error('本机预览附件不能超过 2 MB；云端工作区支持 20 MB。')
+    const src = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const value = String(reader.result)
+        const comma = value.indexOf(',')
+        if (comma < 0) reject(new Error('附件读取失败。'))
+        else resolve(`data:application/octet-stream;base64,${value.slice(comma + 1)}`)
+      }
+      reader.onerror = () => reject(new Error('附件读取失败。'))
+      reader.readAsDataURL(file)
+    })
+    return { src, name: file.name, size: file.size, mime }
+  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('请先登录。')
+  const extension = file.name.match(/\.([a-z0-9]{1,12})$/i)?.[1]?.toLowerCase()
+  const path = `${user.id}/${crypto.randomUUID()}${extension ? `.${extension}` : ''}`
+  const { error } = await supabase.storage.from('note-files').upload(path, file, { contentType: mime, upsert: false })
+  if (error) throw error
+  const src = supabase.storage.from('note-files').getPublicUrl(path, { download: file.name }).data.publicUrl
+  return { src, name: file.name, size: file.size, mime }
+}

@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { JSONContent } from '@tiptap/core'
-import { Check, Copy, X } from 'lucide-react'
-import { hljs, safeUrl } from '../lib/content'
+import { Check, Copy, Download, FileText, X } from 'lucide-react'
+import { hljs, safeAttachmentUrl, safeUrl } from '../lib/content'
 import { normalizeTextColor } from '../lib/text-color'
 
 function CodeBlock({ node }: { node: JSONContent }) {
@@ -25,7 +25,7 @@ function CodeBlock({ node }: { node: JSONContent }) {
   </figure>
 }
 
-function ImagePreview({ src, alt, title }: { src: string; alt: string; title?: string }) {
+function ImagePreview({ src, alt, title, width }: { src: string; alt: string; title?: string; width?: number }) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -43,7 +43,7 @@ function ImagePreview({ src, alt, title }: { src: string; alt: string; title?: s
   }, [open])
 
   return <>
-    <button type="button" className="image-preview-trigger" onClick={() => setOpen(true)} aria-label={alt ? `查看图片：${alt}` : '查看大图'}>
+    <button type="button" className="image-preview-trigger" style={width ? { width: `${width}%` } : undefined} onClick={() => setOpen(true)} aria-label={alt ? `查看图片：${alt}` : '查看大图'}>
       <img src={src} alt={alt} loading="lazy" />
     </button>
     {open && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={alt ? `图片预览：${alt}` : '图片预览'} onClick={() => setOpen(false)}>
@@ -54,6 +54,12 @@ function ImagePreview({ src, alt, title }: { src: string; alt: string; title?: s
       </div>
     </div>}
   </>
+}
+
+function fileSize(value: unknown) {
+  const size = Number(value || 0)
+  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`
+  return `${Math.max(1, Math.ceil(size / 1024))} KB`
 }
 
 function ContentNode({ node, index }: { node: JSONContent; index: number }) {
@@ -92,7 +98,19 @@ function ContentNode({ node, index }: { node: JSONContent; index: number }) {
       const src = safeUrl(String(node.attrs?.src || ''), true)
       const alt = String(node.attrs?.alt || '')
       const title = node.attrs?.title ? String(node.attrs.title) : undefined
-      return src ? <figure className="article-image"><ImagePreview src={src} alt={alt} title={title} />{title && <figcaption>{title}</figcaption>}</figure> : null
+      const parsedWidth = Number.parseInt(String(node.attrs?.width || ''), 10)
+      const width = Number.isFinite(parsedWidth) ? Math.min(100, Math.max(20, parsedWidth)) : undefined
+      return src ? <figure className="article-image"><ImagePreview src={src} alt={alt} title={title} width={width} />{title && <figcaption>{title}</figcaption>}</figure> : null
+    }
+    case 'attachment': {
+      const src = safeAttachmentUrl(String(node.attrs?.src || ''))
+      const name = String(node.attrs?.name || 'attachment')
+      const mime = String(node.attrs?.mime || 'application/octet-stream')
+      return src ? <a className="article-attachment" href={src} download={name} target="_blank" rel="noopener noreferrer">
+        <FileText size={20} />
+        <span><strong>{name}</strong><small>{fileSize(node.attrs?.size)} · {mime}</small></span>
+        <Download size={17} />
+      </a> : null
     }
     case 'table': return <div className="table-scroll"><table><tbody>{children}</tbody></table></div>
     case 'tableRow': return <tr>{children}</tr>

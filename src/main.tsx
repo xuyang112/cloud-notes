@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom'
 import { NotebookProvider } from './store'
 import Shell from './components/Shell'
-import Home from './pages/Home'
 import Article from './pages/Article'
+import RootRedirect from './pages/RootRedirect'
 import './styles.css'
 
 const AdminList = lazy(() => import('./pages/Admin').then(module => ({ default: module.AdminList })))
@@ -18,7 +18,7 @@ const router = createBrowserRouter([{
   element: <NotebookProvider><Shell /></NotebookProvider>,
   errorElement: <main className="empty-state"><h1>页面出现异常</h1><p>请刷新后重试。未保存内容可在原编辑窗口中导出。</p><a href="/">返回首页</a></main>,
   children: [
-    { index: true, element: <Home /> },
+    { index: true, element: <RootRedirect /> },
     { path: 'notes/:slug', element: <Article /> },
     { path: 'admin/login', element: <Suspense fallback={loading}><Login /></Suspense> },
     { path: 'admin', element: guarded(<AdminList />) },

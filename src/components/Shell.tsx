@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowUpRight, ChevronDown, Code2, Database, Layers, Menu, Search, SquarePen, X, Cpu } from 'lucide-react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { ArrowUpRight, ChevronDown, Code2, Database, Layers, Menu, SquarePen, X, Cpu } from 'lucide-react'
 import { site } from '../../site.config.mjs'
 import { configured } from '../lib/repository'
 import { useNotebook } from '../store'
@@ -9,16 +9,13 @@ const icons = [Code2, Database, Cpu, Layers]
 export default function Shell() {
   const { data, loading, error, reload } = useNotebook()
   const location = useLocation()
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
   const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState(params.get('q') || '')
   const drawerRef = useRef<HTMLElement>(null)
   const menuRef = useRef<HTMLButtonElement>(null)
   const [closedGroups, setClosedGroups] = useState<string[]>([])
   const publicNotes = data.notes.filter(note => note.published)
   const categories = [...data.categories].sort((a, b) => a.sort_order - b.sort_order)
-  useEffect(() => { setOpen(false); setSearch(params.get('q') || ''); window.scrollTo(0, 0) }, [location.pathname, location.search])
+  useEffect(() => { setOpen(false); window.scrollTo(0, 0) }, [location.pathname, location.search])
   useEffect(() => {
     if (!open) return
     const previousOverflow = document.body.style.overflow
@@ -59,9 +56,6 @@ export default function Shell() {
       <header className="topbar">
         <button ref={menuRef} className="icon-button mobile-menu" title="打开导航" aria-label="打开导航" aria-expanded={open} onClick={() => setOpen(true)}><Menu size={21} /></button>
         <div className="breadcrumb"><Link to="/">笔记本</Link><span>/</span><span>{location.pathname.startsWith('/admin') ? '管理' : location.pathname.startsWith('/notes/') ? '知识记录' : '全部笔记'}</span></div>
-        <form className="global-search" role="search" onSubmit={event => { event.preventDefault(); navigate(search.trim() ? `/?q=${encodeURIComponent(search.trim())}` : '/') }}>
-          <Search size={16} /><input type="search" aria-label="搜索全部笔记" placeholder="搜索笔记…" value={search} onChange={event => setSearch(event.target.value)} /><button type="submit" className="icon-button" aria-label="开始搜索" title="搜索"><ArrowUpRight size={15} /></button>
-        </form>
         {!configured && <span className="preview-badge">本机预览</span>}
       </header>
       {error ? <div className="error-state"><h1>暂时无法读取笔记</h1><p>{error}</p><button className="primary-button" onClick={() => void reload()}>重新加载</button></div>

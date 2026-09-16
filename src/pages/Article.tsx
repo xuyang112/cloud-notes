@@ -31,7 +31,7 @@ export default function Article() {
   const category = categories.find(item => item.id === note.category_id)
   return <main className="article-layout">
     <article className="article-main">
-      <div className="article-kicker"><Link to={`/?category=${category?.id || ''}`}>{category?.name || '未分类'}</Link><span> / </span><span>学习笔记</span></div>
+      <div className="article-kicker"><span>{category?.name || '未分类'}</span><span> / </span><span>学习笔记</span></div>
       <Tutorial title={note.title} onCollapsedChange={setCollapsed}>
         <div className="article-meta"><span><CalendarDays size={13} />更新于 {note.updated_at.slice(0, 10)}</span><span><Clock3 size={13} />约 {Math.max(1, Math.ceil(plainText(note.content).length / 350))} 分钟</span></div>
         <RichContent content={note.content} />

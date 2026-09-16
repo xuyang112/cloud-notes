@@ -76,7 +76,6 @@ svg { flex-shrink: 0; }
 .brand-dot { width: 5px; height: 5px; margin-left: 5px; background: var(--note-primary); }
 .sidebar-caption { padding: 12px 14px 35px; color: #9197a0; font-size: 11px; }
 .sidebar-nav { flex: 1; }
-.count { margin-left: auto; font-size: 11px; }
 .nav-group { margin-bottom: 22px; }
 .category-toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 5px 13px; font-size: 12px; color: #626b77; font-weight: 600; text-align: left; }
 .category-toggle span { flex: 1; }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowUpRight, BookOpen, ChevronDown, Code2, Database, Layers, Menu, Search, SquarePen, X, Cpu } from 'lucide-react'
+import { ArrowUpRight, ChevronDown, Code2, Database, Layers, Menu, Search, SquarePen, X, Cpu } from 'lucide-react'
 import { site } from '../../site.config.mjs'
 import { configured } from '../lib/repository'
 import { useNotebook } from '../store'
@@ -43,8 +43,6 @@ export default function Shell() {
       <div className="sidebar-brand"><Link to="/" className="brand">{site.name}<span className="brand-dot" /></Link><button className="icon-button drawer-close" aria-label="关闭导航" onClick={() => { setOpen(false); menuRef.current?.focus() }}><X size={20} /></button></div>
       <span className="sidebar-caption">技术笔记</span>
       <nav className="sidebar-nav">
-        <NavLink to="/" end className={({ isActive }) => `all-notes ${isActive ? 'active' : ''}`}><BookOpen size={17} /><span>全部笔记</span><span className="count">{publicNotes.length}</span></NavLink>
-        <div className="nav-separator" />
         {categories.map((category, index) => {
           const Icon = icons[index % icons.length]
           const notes = publicNotes.filter(note => note.category_id === category.id).sort((a, b) => a.created_at.localeCompare(b.created_at) || a.slug.localeCompare(b.slug))
